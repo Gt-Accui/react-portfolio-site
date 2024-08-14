@@ -2,12 +2,13 @@ import { useEffect, useReducer } from "react";
 import axios from "axios";
 
 import { skillReducer, initialState, actionTypes } from "../reducers/skillReducer";
+import { requestStates } from "../constants";
+
 
 export const useSkills = () => {
     const [state, dispatch] = useReducer(skillReducer, initialState);
 
-    useEffect(() => {
-        dispatch({ type: actionTypes.fetch });
+    const fetchReposApi = () => {
         axios.get("https://api.github.com/users/Gt-Accui/repos")
             .then((response) => {
                 const languageList = response.data.map(res => res.language);
@@ -17,7 +18,7 @@ export const useSkills = () => {
             .catch(() => {
                 dispatch({ type: actionTypes.error });
             });
-    }, []);
+    };
 
     const generateLanguageCountObj = (allLanguageList) => {
         const notNullLanguageList = allLanguageList.filter(language => language != null);
@@ -31,10 +32,28 @@ export const useSkills = () => {
         });
     };
 
-    const converseCountToPercentage = (count) => {
-        if (count > 10) return 100;
+    useEffect(() => {
+        if (state.requestState !== requestStates.loading) return;
 
-        return count * 10;
+        fetchReposApi();
+    }, [state.requestState]);
+
+    useEffect(() => {
+        dispatch({ type: actionTypes.fetch });
+    }, []);
+
+    const converseCountToPercentage = (languageCount) => {
+        const DEFAULT_MAX_PERCENTAGE = 100;
+        const LANGUAGE_COUNT_BASE = 10;
+
+        const languagePercentage = languageCount * LANGUAGE_COUNT_BASE;
+
+        const isOverMaxPercentage = languagePercentage > DEFAULT_MAX_PERCENTAGE;
+        if (isOverMaxPercentage) {
+            return DEFAULT_MAX_PERCENTAGE;
+        }
+
+        return languagePercentage;
     };
 
     const sortedLanguageList = () => {
